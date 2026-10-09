@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#11161C">
+<title>Boussole sociale</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap">
+<style>
+/* Une colonne : lecture en haut, contrôles, mesures en direct, historique, réglages repliés. Sombre (discret en conversation). */
+:root{
+  --bg:#11161C; --surface:#1A222A; --ink:#E7ECF0; --muted:#97A3AE; --line:#2B3640;
+  --accent:#D9A35C; --accent-ink:#1A1206;
+  --ok:#6CC69A; --warn:#E8A84A; --alert:#F08A82;
+  --ok-bg:#16302A; --warn-bg:#33270F; --alert-bg:#3A1C1A;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
+h1{font-family:var(--display);font-weight:800;font-size:1.5rem;margin:0}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+
+.reading{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 16px 16px 22px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden}
+.reading::before{content:"";position:absolute;inset:0 auto 0 0;width:6px;background:var(--sig,var(--line))}
+.reading[data-signal="ok"]{--sig:var(--ok)}
+.reading[data-signal="attention"]{--sig:var(--warn)}
+.reading[data-signal="alerte"]{--sig:var(--alert)}
+.reply{--sig:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pill{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:99px;background:var(--bg);color:var(--muted)}
+.pill.sig-ok{background:var(--ok-bg);color:var(--ok)}
+.pill.sig-attention{background:var(--warn-bg);color:var(--warn)}
+.pill.sig-alerte{background:var(--alert-bg);color:var(--alert)}
+.emotion{font-family:var(--display);font-weight:800;font-size:2.1rem;line-height:1.1;margin:0}
+.conseil{font-size:1.25rem;font-weight:700;margin:0}
+.indice{color:var(--muted);margin:0;font-size:.95rem}
+
+button{font:inherit;font-weight:700;border-radius:12px;padding:14px 16px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-size:1.1rem}
+button.primary.on{background:transparent;color:var(--accent)}
+button.alt{border-color:var(--accent);color:var(--accent)}
+button:disabled{opacity:.55}
+button:focus-visible,input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:2px}
+.btns{display:grid;grid-template-columns:3fr 2fr;gap:10px}
+
+.live{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.meter{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.meter b{display:block;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.meter span{font-variant-numeric:tabular-nums;font-size:1rem}
+.bar{height:4px;background:var(--line);border-radius:2px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.interim{min-height:1.5em;color:var(--muted);font-style:italic;margin:0;overflow-wrap:anywhere}
+.status{min-height:1.2em;font-size:.9rem;color:var(--muted);margin:0}
+.status.err{color:var(--alert)}
+.status.blank{color:var(--warn)}
+
+h2{font-family:var(--display);font-weight:700;font-size:1.05rem;margin:0 0 6px}
+ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+li{border-top:1px solid var(--line);padding-top:8px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.said{overflow-wrap:anywhere}
+.small{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.histHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.histHead button{padding:8px 12px;font-size:.9rem}
+
+details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+summary{font-weight:700;cursor:pointer}
+.settings{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+label{font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+label.check{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:.95rem;color:var(--ink)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+input[type=checkbox]{width:auto}
+textarea{min-height:140px;font-size:.85rem}
+.diag{white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem;color:var(--muted);margin:10px 0;font-family:ui-monospace,Menlo,monospace}
+.foot{font-size:.85rem;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Boussole sociale</h1>
+    <p class="sub">Écoute, mesure le ton, les hésitations et les blancs, et devine l'émotion probable. Gratuit, sans compte.</p>
+  </header>
+
+  <section class="reading" id="reading" aria-live="polite">
+    <div class="row">
+      <span class="pill" id="sigPill">En attente</span>
+      <span class="pill" id="confPill" hidden></span>
+      <span class="pill" id="enginePill" hidden></span>
+    </div>
+    <p class="emotion" id="emotion">—</p>
+    <p class="conseil" id="conseil">Appuie sur Écouter quand la conversation commence.</p>
+    <p class="indice" id="indice"></p>
+  </section>
+
+  <section class="reading reply" id="replyBox" hidden aria-live="polite">
+    <div class="row"><span class="pill">À dire</span></div>
+    <p class="conseil" id="replyText"></p>
+    <p class="indice" id="replyWhy"></p>
+  </section>
+
+  <div class="btns">
+    <button class="primary" id="toggle">Écouter</button>
+    <button class="alt" id="suggest">Que répondre ?</button>
+  </div>
+
+  <div class="live">
+    <div class="meter"><b>Niveau</b><span id="mLevel">–</span><div class="bar"><i id="mBar"></i></div></div>
+    <div class="meter"><b>Hauteur</b><span id="mPitch">–</span></div>
+    <div class="meter"><b>Voix</b><span id="mVoice">–</span></div>
+    <div class="meter"><b>Silence</b><span id="mSilence">–</span></div>
+  </div>
+  <p class="interim" id="interim"></p>
+  <p class="status" id="status"></p>
+
+  <section>
+    <div class="histHead">
+      <h2>Cette conversation</h2>
+      <button id="summaryBtn">Copier le résumé pour Claude</button>
+    </div>
+    <textarea id="summaryOut" readonly hidden aria-label="Résumé à copier"></textarea>
+    <ol id="hist"></ol>
+  </section>
+
+  <details id="settingsBox">
+    <summary>Réglages</summary>
+    <div class="settings">
+      <label for="ctx">Situation
+        <input id="ctx" placeholder="ex : entretien, pote, prof, vendeur">
+      </label>
+      <label for="engine">Lecture des émotions
+        <select id="engine">
+          <option value="local" selected>Locale : gratuite, instantanée, approximative</option>
+          <option value="claude">Claude : plus fine, demande une clé API</option>
+        </select>
+      </label>
+      <label for="speakMode">Dans tes écouteurs
+        <select id="speakMode">
+          <option value="off">Rien (écran seulement)</option>
+          <option value="alerts" selected>Émotion + conseil, seulement si attention ou alerte</option>
+          <option value="all">Émotion + conseil à chaque phrase</option>
+        </select>
+      </label>
+      <label for="sens">Sensibilité du micro
+        <select id="sens">
+          <option value="2">Haute (pièce calme)</option>
+          <option value="3" selected>Normale</option>
+          <option value="5">Basse (endroit bruyant)</option>
+        </select>
+      </label>
+      <label for="blankSec">Signaler un blanc après
+        <select id="blankSec">
+          <option value="3">3 secondes</option>
+          <option value="4" selected>4 secondes</option>
+          <option value="6">6 secondes</option>
+          <option value="0">Jamais</option>
+        </select>
+      </label>
+      <label class="check"><input id="showVoice" type="checkbox" checked> Afficher les mesures de voix dans l'historique</label>
+      <label for="apiKey">Clé API Claude (facultative)
+        <input id="apiKey" type="password" placeholder="sk-ant-… — sans clé, tout reste gratuit" autocomplete="off">
+      </label>
+      <label for="model">Modèle Claude principal (avec clé)
+        <select id="model">
+          <option value="claude-haiku-5-5">Haiku 5.5 (le plus rapide)</option>
+          <option value="claude-sonnet-5-5">Sonnet 5.5 (plus fin, plus lent)</option>
+        </select>
+      </label>
+      <label class="check"><input id="boost" type="checkbox" checked> Avec clé : Sonnet en renfort quand Haiku n'est pas sûr</label>
+    </div>
+  </details>
+
+  <details id="diagBox">
+    <summary>Diagnostic</summary>
+    <pre id="diag" class="diag"></pre>
+    <button id="copyDiag">Copier le diagnostic</button>
+  </details>
+
+  <p class="foot">Version <span id="ver"></span>. Rien n'est enregistré : l'historique disparaît quand tu fermes la page, pense à copier le résumé avant. L'audio n'est pas gardé. La transcription utilise la reconnaissance vocale du navigateur, qui peut passer par les serveurs d'Apple ou de Google. La page entend toutes les voix, la tienne comprise.</p>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const VERSION = "2.1";
+$("ver").textContent = VERSION;
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(_){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(_){} }
+};
+
+/* ---------- réglages (gardés sur ce téléphone uniquement) ---------- */
+["apiKey","model","ctx","sens","speakMode","engine","blankSec"].forEach(id => {
+  const v = store.get("bs_"+id); if(v !== null && v !== "") $(id).value = v;
+  $(id).addEventListener("change", () => store.set("bs_"+id, $(id).value));
+});
+["showVoice","boost"].forEach(id => {
+  const v = store.get("bs_"+id); if(v !== null) $(id).checked = v === "1";
+  $(id).addEventListener("change", () => { store.set("bs_"+id, $(id).checked ? "1" : "0"); renderHist(); });
+});
+
+/* ---------- état ---------- */
+const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let running = false, muted = false;
+let ctx = null, stream = null, analyser = null, timer = null, rec = null, wakeLock = null;
+let noiseFloor = null, calib = [];
+let frames = [];                 // mesures de voix depuis la dernière phrase transcrite
+let silentTicks = 0, pausesInUtt = 0, blankBefore = 0, blankShown = false, heardSomething = false;
+let startedAt = null, listenMs = 0;
+const base = {};                 // mesures passées, pour comparer chaque voix à sa propre moyenne
+const turns = [];                // phrases + lectures, en mémoire seulement
+let pending = Promise.resolve();
+const TICK = 0.05;               // une mesure toutes les 50 ms
+
+/* ---------- diagnostic ---------- */
+const diag = {micro:"pas encore lancé", reconnaissance:"pas encore lancée", mesuresVoix:0, phrases:0, blancs:0, renfortsSonnet:0, reponsesSuggerees:0, erreurs:[]};
+function renderDiag(){
+  $("diag").textContent =
+`Version : ${VERSION}
+Navigateur : ${navigator.userAgent}
+Micro : ${diag.micro}
+Reconnaissance vocale : ${Rec ? diag.reconnaissance : "absente de ce navigateur"}
+Mesures de voix captées : ${diag.mesuresVoix}
+Phrases transcrites : ${diag.phrases}
+Blancs signalés : ${diag.blancs}
+Lecture : ${$("engine").value} · renforts Sonnet : ${diag.renfortsSonnet} · réponses suggérées : ${diag.reponsesSuggerees}
+Écouteurs : ${$("speakMode").value} · sensibilité : ${$("sens").value} · blanc : ${$("blankSec").value} s
+Dernières erreurs :
+${diag.erreurs.length ? diag.erreurs.map(e => "- " + e).join("\n") : "- aucune"}`;
+}
+function logErr(msg){ diag.erreurs.push(new Date().toLocaleTimeString("fr-FR") + " " + msg); if(diag.erreurs.length > 8) diag.erreurs.shift(); renderDiag(); }
+$("diagBox").addEventListener("toggle", renderDiag);
+$("copyDiag").addEventListener("click", () => { renderDiag(); copyText($("diag").textContent, $("copyDiag"), "Copier le diagnostic", $("diag")); });
+
+function setStatus(msg, kind){
+  $("status").textContent = msg;
+  $("status").className = "status" + (kind === true || kind === "err" ? " err" : kind === "blank" ? " blank" : "");
+  if(kind === true || kind === "err") logErr(msg);
+}
+
+function copyText(text, btn, label, selectEl){
+  const done = ok => { btn.textContent = ok ? "Copié" : "Sélectionné : copie-le"; setTimeout(() => btn.textContent = label, 2500); };
+  const fallback = () => {
+    if(selectEl.tagName === "TEXTAREA"){ selectEl.hidden = false; selectEl.focus(); selectEl.select(); }
+    else { const r = document.createRange(); r.selectNodeContents(selectEl); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+    done(false);
+  };
+  try{ navigator.clipboard.writeText(text).then(() => done(true), fallback); }catch(_){ fallback(); }
+}
+
+/* ---------- analyse de la voix (dans le téléphone) ---------- */
+function rmsOf(buf){ let s=0; for(let i=0;i<buf.length;i++) s+=buf[i]*buf[i]; return Math.sqrt(s/buf.length); }
+
+// Hauteur par autocorrélation normalisée, 70–400 Hz. Renvoie Hz ou null si pas de voix claire.
+function pitchOf(buf, sr){
+  const n = buf.length, minLag = Math.floor(sr/400), maxLag = Math.min(Math.floor(sr/70), n-1);
+  let e0 = 0; for(let i=0;i<n;i++) e0 += buf[i]*buf[i];
+  if(e0 === 0) return null;
+  let best = 0, bestLag = -1;
+  for(let lag=minLag; lag<=maxLag; lag++){
+    let s = 0;
+    for(let i=0;i<n-lag;i+=2) s += buf[i]*buf[i+lag];
+    const r = 2*s/e0 * (n/(n-lag));
+    if(r > best){ best = r; bestLag = lag; }
+  }
+  return best > 0.5 && bestLag > 0 ? sr/bestLag : null;
+}
+
+function tick(){
+  if(!analyser) return;
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  const r = rmsOf(buf), db = 20*Math.log10(r + 1e-9);
+  $("mLevel").textContent = db.toFixed(0) + " dB";
+  $("mBar").style.width = Math.max(0, Math.min(100, (db + 70) * 1.6)) + "%";
+
+  if(noiseFloor === null){                      // 1,5 s de calibration du bruit de fond
+    calib.push(r);
+    if(calib.length >= 30){ calib.sort((a,b)=>a-b); noiseFloor = Math.max(calib[15], 1e-4); setStatus("J'écoute."); }
+    return;
+  }
+  if(muted) return;
+  const speaking = r > noiseFloor * Number($("sens").value);
+  $("mVoice").textContent = speaking ? "oui" : "non";
+
+  if(!speaking){
+    silentTicks++;
+    const sec = silentTicks * TICK;
+    $("mSilence").textContent = sec >= 1 ? sec.toFixed(0) + " s" : "–";
+    $("mPitch").textContent = "–";
+    const lim = Number($("blankSec").value);
+    if(lim > 0 && heardSomething && !blankShown && sec >= lim){
+      blankShown = true; diag.blancs++;
+      setStatus(`Blanc de ${lim} s : relance avec une question ouverte.`, "blank");
+    }
+    return;
+  }
+  // la voix reprend
+  const sil = silentTicks * TICK;
+  if(frames.length && sil >= 0.3 && sil <= 2) pausesInUtt++;          // hésitation au milieu d'une phrase
+  if(sil >= 3 && heardSomething) blankBefore = Math.max(blankBefore, sil);
+  if(blankShown) setStatus(running ? "J'écoute." : "");
+  silentTicks = 0; blankShown = false; heardSomething = true;
+  $("mSilence").textContent = "–";
+
+  const f0 = pitchOf(buf, ctx.sampleRate);
+  $("mPitch").textContent = f0 ? Math.round(f0) + " Hz" : "–";
+  frames.push({db, f0}); diag.mesuresVoix++;
+}
+
+function median(a){ const s=[...a].sort((x,y)=>x-y); return s.length ? s[Math.floor(s.length/2)] : null; }
+function std(a){ if(a.length<2) return null; const m=a.reduce((x,y)=>x+y,0)/a.length; return Math.sqrt(a.reduce((x,y)=>x+(y-m)**2,0)/a.length); }
+
+function voiceFeatures(text){
+  const f = frames; frames = [];
+  const st = f.filter(x => x.f0).map(x => 12*Math.log2(x.f0/100));   // demi-tons, réf. 100 Hz
+  const speechSec = f.length * TICK;
+  const out = {};
+  if(st.length >= 5){ out.hauteur = median(st); out.variation = std(st); }
+  if(f.length) out.volume = f.reduce((s,x)=>s+x.db,0)/f.length;
+  if(speechSec > 0.4) out.debit = text.split(/\s+/).filter(Boolean).length / speechSec;
+  return out;
+}
+
+const LABELS = {hauteur:["hauteur de voix","dt"], variation:["intonation","dt"], volume:["volume","dB"], debit:["débit","mots/s"]};
+function compare(feats){
+  const res = {};
+  for(const k in feats){
+    const h = base[k] || (base[k] = []);
+    res[k] = h.length >= 3 ? feats[k] - h.reduce((s,x)=>s+x,0)/h.length : null;
+    h.push(feats[k]);
+  }
+  return res;
+}
+function describe(diff){
+  const lines = Object.keys(diff).map(k => diff[k] === null
+    ? `- ${LABELS[k][0]} : pas encore assez de données pour une moyenne`
+    : `- ${LABELS[k][0]} : ${diff[k]>=0?"+":""}${diff[k].toFixed(1)} ${LABELS[k][1]} par rapport à sa moyenne`);
+  return lines.join("\n") || "- aucune mesure exploitable";
+}
+function shortVoice(diff){
+  return Object.keys(diff).filter(k => diff[k] !== null)
+    .map(k => `${LABELS[k][0]} ${diff[k]>=0?"+":""}${diff[k].toFixed(1)} ${LABELS[k][1]}`).join(" · ");
+}
+
+/* ---------- lecture LOCALE des émotions : règles, gratuite, hors ligne ---------- */
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’`]/g,"'");
+const LEX = {
+  content:  ["genial","super","trop bien","cool","top","parfait","j'adore","content","contente","heureux","heureuse","merci","excellent","trop fort","magnifique","trop drole","mdr","haha","trop cool","trop content"],
+  agace:    ["putain","m'enerve","chiant","n'importe quoi","t'es serieux","laisse tomber","j'en ai marre","marre","arrete","ca suffit","non mais","toujours pareil","tu comprends pas","j'ai deja dit","c'est pas possible","ca me saoule","saoule"],
+  presse:   ["vite","pas le temps","depeche","en gros","bref","rapidement","faut que j'y aille","je dois y aller","on en reparle","plus tard","en retard","grouille","j'ai pas le temps"],
+  triste:   ["triste","pas bien","deprime","dur","galere","decu","decue","dommage","malheureusement","fatigue","fatiguee","creve","crevee","seul","seule","ca va pas","pas le moral","c'est dur","j'en peux plus","pleurer","envie de pleurer","je me sens mal","ca va pas trop","pas la forme","marre de tout","personne me","j'ai mal"],
+  soutien:  ["besoin de parler","parler a quelqu'un","j'ai besoin d'aide","besoin d'aide","tu peux m'aider","aide moi","besoin de toi","j'ai besoin de quelqu'un","je sais plus quoi faire","je me sens seul","je me sens seule"],
+  inquiet:  ["peur","inquiet","inquiete","stress","stresse","stressee","angoisse","j'espere","probleme","oh non","tu crois que","et si","je sais pas si","ca m'inquiete"],
+  ennuye:   ["mouais","bof","si tu veux","peu importe","comme tu veux","ouais ouais","ok ok","mh","j'm'en fous","je m'en fiche"],
+  interesse:["ah bon","ah ouais","vraiment","c'est vrai","raconte","et alors","comment ca","pourquoi","interessant","attends","sans deconner","et apres","c'est fou","incroyable"],
+  gene:     ["enfin","je veux dire","c'est complique","bon bah","comment dire","je sais pas trop","un peu genant","genant","desole","desolee","pardon"],
+  fin:      ["bon allez","allez","a plus","on se voit","je vais y aller","bonne journee","bonne soiree","ciao","a demain","on s'appelle","je te laisse"]
+};
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const LEXRE = Object.fromEntries(Object.entries(LEX).map(([k, ws]) =>
+  [k, ws.map(w => [w, new RegExp("(^|[^a-z'])" + esc(w) + "($|[^a-z'])")])]));
+const FILLERS = /(^|[^a-z])(euh+|heu+|bah|ben|hum+|hmm+)($|[^a-z])/g;
+
+const EMO = {
+  neutre:   {label:"Neutre",                   signal:"ok",        conseil:"Continue normalement."},
+  content:  {label:"Content",                  signal:"ok",        conseil:"Rebondis sur son enthousiasme."},
+  interesse:{label:"Intéressé",                signal:"ok",        conseil:"Développe, ça l'intéresse."},
+  presse:   {label:"Pressé",                   signal:"attention", conseil:"Fais plus court, va à l'essentiel."},
+  ennuye:   {label:"Peu intéressé",            signal:"attention", conseil:"Pose-lui une question ou change de sujet."},
+  triste:   {label:"Triste ou fatigué",        signal:"attention", conseil:"Montre que tu as compris, sans chercher à régler."},
+  soutien:  {label:"A besoin de soutien",      signal:"alerte",    conseil:"Reste avec lui, écoute, demande ce qui se passe."},
+  inquiet:  {label:"Inquiet",                  signal:"attention", conseil:"Rassure avec une info concrète."},
+  gene:     {label:"Hésitant ou mal à l'aise", signal:"attention", conseil:"Laisse-lui de l'espace, n'insiste pas."},
+  agace:    {label:"Agacé",                    signal:"alerte",    conseil:"Ralentis, reconnais le problème, ne te justifie pas."},
+  fin:      {label:"Veut finir",               signal:"alerte",    conseil:"Conclus poliment."}
+};
+
+function localRead(text, diff, extra){
+  const t = " " + norm(text) + " ", sc = {}, cues = [];
+  const add = (k, v, cue) => { sc[k] = (sc[k] || 0) + v; if(cue && !cues.includes(cue)) cues.push(cue); };
+  for(const k in LEXRE) for(const [w, re] of LEXRE[k]) if(re.test(t)) add(k, k === "soutien" ? 2.5 : 1.2, "« " + w + " »");
+
+  const d = k => (diff[k] === undefined ? null : diff[k]);
+  if(d("volume")    !== null && d("volume")    >  4)  { add("agace",.8,"voix plus forte"); add("content",.5); }
+  if(d("volume")    !== null && d("volume")    < -4)  { add("triste",.6,"voix plus faible"); add("gene",.4); }
+  if(d("hauteur")   !== null && d("hauteur")   >  2)  { add("content",.5,"voix plus aiguë"); add("inquiet",.4); add("agace",.3); }
+  if(d("hauteur")   !== null && d("hauteur")   < -2)  { add("triste",.6,"voix plus grave"); add("ennuye",.3); }
+  if(d("variation") !== null && d("variation") >  1.5){ add("content",.6,"intonation très vivante"); add("interesse",.5); }
+  if(d("variation") !== null && d("variation") < -1)  { add("ennuye",.7,"intonation plate"); add("triste",.4); }
+  if(d("debit")     !== null && d("debit")     >  0.8){ add("presse",.8,"parle plus vite"); add("inquiet",.3); add("agace",.2); }
+  if(d("debit")     !== null && d("debit")     < -0.8){ add("triste",.4,"parle plus lentement"); add("gene",.4); }
+  // Voix à la fois plus basse et plus lente : signe typique de tristesse ou d'abattement.
+  if(d("volume") !== null && d("debit") !== null && d("volume") < -3 && d("debit") < -0.5) add("triste", 1, "voix basse et lente");
+  if(extra.words <= 2)       add("ennuye", .6, "réponse très courte");
+  // Les pauses vont avec la gêne… mais aussi avec la tristesse : on partage.
+  if(extra.pauses >= 2){ add("gene", .2 * extra.pauses, extra.pauses + " hésitations"); add("triste", .15 * extra.pauses); }
+  if(extra.fillers >= 2)     add("gene", .5, extra.fillers + " « euh »");
+  if(extra.blankBefore >= 3) add("gene", .4, "blanc de " + extra.blankBefore.toFixed(0) + " s avant");
+
+  const ranked = Object.entries(sc).sort((a,b) => b[1] - a[1]);
+  const [topK, topV] = ranked[0] || ["neutre", 0];
+  const second = ranked[1] ? ranked[1][1] : 0;
+  const key = topV >= 1 ? topK : "neutre";
+  // Règles simples : la confiance ne dépasse jamais « moyenne ».
+  const confiance = key === "neutre" ? "faible" : (topV >= 2 && topV - second >= .6 ? "moyenne" : "faible");
+  const e = EMO[key];
+  let emotion = e.label, conseil = e.conseil;
+  // Doute entre deux lectures qui demandent des réponses opposées : on ne parie pas, on conseille de demander.
+  const secondK = ranked[1] && ranked[1][0];
+  if(confiance === "faible" && key !== "neutre" && key !== "soutien" && secondK && secondK !== key && second >= topV * .6){
+    emotion = e.label + " ou " + EMO[secondK].label.toLowerCase();
+    conseil = "Pas sûr : demande-lui simplement comment ça va.";
+  }
+  return {emotion, confiance, signal:e.signal, conseil,
+          indice: cues.length ? cues.slice(0,3).join(", ") : "aucun signal net"};
+}
+
+/* ---------- Claude (seulement si une clé est saisie) ---------- */
+const SONNET = "claude-sonnet-5-5";
+const NAME = m => m.includes("sonnet") ? "Sonnet" : "Haiku";
+const SYSTEM = `Tu es un assistant de communication discret pour une personne autiste qui veut mieux comprendre ses interlocuteurs.
+On te donne ce qui vient d'être dit (reconnaissance vocale du téléphone, peut contenir des erreurs, et peut parfois être la voix de l'utilisateur lui-même), des mesures de la voix comparées à la moyenne depuis le début de la conversation, les hésitations et les blancs.
+Tâche :
+1. L'émotion ou l'état le plus probable, en un ou deux mots.
+2. Sois honnête sur l'incertitude : en cas de doute, dis « neutre » ou « incertain » avec une confiance faible plutôt que d'inventer.
+3. UN conseil très court (12 mots maximum), à l'impératif, en tutoyant.
+4. Un indice (15 mots maximum) : quels mots ou quel changement de voix t'ont fait penser ça.
+5. "ambigu" = true si la phrase peut cacher un sous-entendu, de l'ironie, du sarcasme ou un double sens, sinon false.
+Réponds uniquement avec ce JSON sur une ligne :
+{"emotion":"...","confiance":"faible|moyenne|élevée","signal":"ok|attention|alerte","conseil":"...","indice":"...","ambigu":false}
+signal = ok si tout va bien, attention si un ajustement est utile, alerte si la personne semble agacée, blessée ou veut finir la conversation.`;
+
+async function callClaude(model, system, user, maxTokens){
+  const key = $("apiKey").value.trim();
+  if(!key) throw new Error("Pas de clé API dans les réglages.");
+  const r = await fetch("https://api.anthropic.com/v1/messages", {
+    method:"POST",
+    headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body: JSON.stringify({model, max_tokens:maxTokens, system, messages:[{role:"user", content:user}]})
+  });
+  const data = await r.json().catch(() => ({}));
+  if(!r.ok){
+    const msg = data?.error?.message || ("erreur " + r.status);
+    if(r.status === 401) throw new Error("Clé API refusée. Vérifie-la dans les réglages.");
+    if(r.status === 429) throw new Error("Trop de demandes ou crédit épuisé : " + msg);
+    throw new Error("Claude n'a pas répondu : " + msg);
+  }
+  return (data.content || []).map(b => b.text || "").join("");
+}
+async function claudeRead(text, desc, extraDesc, model){
+  const prev = turns.slice(-6).map(t => "- « " + t.text + " »").join("\n") || "(début de conversation)";
+  const user = `Situation : ${$("ctx").value.trim() || "non précisée"}\n\nDit juste avant :\n${prev}\n\nVient d'être dit :\n« ${text} »\n\nVoix par rapport à la moyenne :\n${desc}\n${extraDesc}`;
+  const raw = await callClaude(model, SYSTEM, user, 250);
+  try{ return JSON.parse(raw.match(/\{[\s\S]*\}/)[0]); }
+  catch(_){ return {emotion:"?", confiance:"faible", signal:"ok", conseil:raw.trim().slice(0,80), indice:""}; }
+}
+function needsBoost(res, text){
+  const words = text.split(/\s+/).filter(Boolean).length;
+  const unsure = String(res.confiance).toLowerCase().startsWith("faible") || /incertain/i.test(res.emotion || "");
+  return res.ambigu === true || (unsure && words >= 4);
+}
+
+/* ---------- affichage + voix ---------- */
+const SIG = {ok:"Tout va bien", attention:"Attention", alerte:"Alerte"};
+function show(res, who, checking){
+  $("enginePill").hidden = false;
+  $("enginePill").textContent = checking ? who + " · vérification Sonnet…" : who;
+  const s = ["ok","attention","alerte"].includes(res.signal) ? res.signal : "ok";
+  $("reading").dataset.signal = s;
+  $("sigPill").className = "pill sig-" + s; $("sigPill").textContent = SIG[s];
+  $("confPill").hidden = false; $("confPill").textContent = "Confiance " + (res.confiance || "faible");
+  $("emotion").textContent = res.emotion || "Incertain";
+  $("conseil").textContent = res.conseil || "";
+  $("indice").textContent = res.indice ? "Indices : " + res.indice : "";
+  if(s !== "ok" && navigator.vibrate){ try{ navigator.vibrate(s === "alerte" ? [120,80,120] : 120); }catch(_){} }
+}
+
+// iPhone : la voix de synthèse ne marche que si elle a été « débloquée » par un appui. On le fait au clic sur Écouter.
+function unlockSpeech(){
+  try{ if("speechSynthesis" in window){ const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } }catch(_){}
+}
+function speak(text){
+  return new Promise(resolve => {
+    if(!("speechSynthesis" in window) || !text) return resolve();
+    muted = true; try{ rec && rec.abort(); }catch(_){}
+    let finished = false;
+    const done = () => {
+      if(finished) return; finished = true; clearTimeout(safety);
+      setTimeout(() => { muted = false; frames = []; silentTicks = 0; startRec(); resolve(); }, 300);
+    };
+    // Filet de sécurité : si le navigateur ne signale jamais la fin de la voix, on rouvre l'écoute quand même.
+    const safety = setTimeout(() => { logErr("voix de synthèse : fin non signalée, écoute relancée"); try{ speechSynthesis.cancel(); }catch(_){} done(); },
+                              2500 + text.length * 90);
+    try{
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "fr-FR"; u.rate = 1.1;
+      u.onend = done; u.onerror = done;
+      speechSynthesis.speak(u);
+    }catch(_){ done(); }
+  });
+}
+
+function renderHist(){
+  const ol = $("hist"); ol.textContent = "";
+  if(!turns.length){ const li=document.createElement("li"); li.className="small"; li.textContent="Rien pour l'instant."; ol.append(li); return; }
+  [...turns].reverse().forEach(t => {
+    const li = document.createElement("li");
+    const a = document.createElement("span"); a.className="said"; a.textContent = t.time + "  « " + t.text + " »";
+    const b = document.createElement("span"); b.className="small"; b.textContent = (t.r.emotion||"?") + " → " + (t.r.conseil||"") + "  (" + t.who + ")";
+    li.append(a,b);
+    if($("showVoice").checked){
+      const bits = [t.voice, t.pauses ? t.pauses + " hésitation(s)" : "", t.blankBefore ? "blanc de " + t.blankBefore.toFixed(0) + " s avant" : ""].filter(Boolean).join(" · ");
+      if(bits){ const c=document.createElement("span"); c.className="small"; c.textContent=bits; li.append(c); }
+    }
+    ol.append(li);
+  });
+}
+renderHist();
+
+/* ---------- une phrase vient d'être transcrite ---------- */
+function handleFinal(text){
+  text = text.trim(); if(text.length < 2) return;
+  diag.phrases++;
+  const diff = compare(voiceFeatures(text));
+  const extra = {
+    words: text.split(/\s+/).filter(Boolean).length,
+    pauses: pausesInUtt,
+    fillers: (norm(text).match(FILLERS) || []).length,
+    blankBefore
+  };
+  pausesInUtt = 0; blankBefore = 0;
+  const time = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit", minute:"2-digit"});
+
+  pending = pending.then(async () => {
+    let res, who;
+    const useClaude = $("engine").value === "claude" && $("apiKey").value.trim();
+    if($("engine").value === "claude" && !useClaude) setStatus("Pas de clé API : lecture locale à la place.");
+    if(useClaude){
+      try{
+        const desc = describe(diff);
+        const extraDesc = `Hésitations dans la phrase : ${extra.pauses} · « euh » : ${extra.fillers} · blanc avant : ${extra.blankBefore ? extra.blankBefore.toFixed(0)+" s" : "non"}`;
+        const main = $("model").value;
+        res = await claudeRead(text, desc, extraDesc, main); who = NAME(main);
+        const boost = $("boost").checked && main !== SONNET && needsBoost(res, text);
+        show(res, who, boost);
+        if(boost){
+          diag.renfortsSonnet++;
+          try{ res = await claudeRead(text, desc, extraDesc, SONNET); who = "Sonnet (renfort)"; }
+          catch(e){ setStatus("Renfort Sonnet indisponible : " + e.message, true); }
+        }
+      }catch(e){ setStatus(e.message + " Lecture locale à la place.", true); res = null; }
+    }
+    if(!res){ res = localRead(text, diff, extra); who = "Locale"; }
+    show(res, who, false);
+    turns.push({time, text, r:res, who, voice:shortVoice(diff), pauses:extra.pauses, blankBefore:extra.blankBefore});
+    renderHist();
+    if(!$("status").classList.contains("err")) setStatus(running ? "J'écoute." : "");
+    const mode = $("speakMode").value;
+    if(mode === "all" || (mode === "alerts" && res.signal && res.signal !== "ok")){
+      await speak(`${res.emotion || "incertain"}. ${res.conseil || ""}`);
+    }
+  });
+}
+
+/* ---------- « Que répondre ? » ---------- */
+const REPLY_SYSTEM = `Tu aides une personne autiste à répondre dans une conversation en cours. Elle entend ta réponse dans ses écouteurs et va la dire elle-même.
+On te donne la situation et les dernières phrases entendues (reconnaissance vocale : erreurs possibles, et certaines phrases peuvent être les siennes), avec l'émotion probable lue pour chacune.
+Propose LA réponse la plus adaptée à dire maintenant : naturelle à l'oral, en français courant, 20 mots maximum, une ou deux phrases faciles à répéter. Si le mieux est de poser une question, de reformuler ou de se taire un instant, propose ça.
+Réponds uniquement avec ce JSON : {"reponse":"...","pourquoi":"10 mots maximum"}`;
+
+function replyContext(){
+  const lines = turns.slice(-10).map(t => `- « ${t.text} » (lecture : ${t.r.emotion || "?"})`).join("\n");
+  return `Situation : ${$("ctx").value.trim() || "non précisée"}\n\nDernières phrases entendues, de la plus ancienne à la plus récente :\n${lines}`;
+}
+
+$("suggest").addEventListener("click", async () => {
+  if(!turns.length){ setStatus("Rien entendu pour l'instant : lance l'écoute d'abord.", true); return; }
+  if(!$("apiKey").value.trim()){
+    // Sans clé : on prépare la demande pour l'app Claude (ton abonnement).
+    const text = "Je suis en pleine conversation. Donne-moi en une phrase de 20 mots maximum la meilleure réponse à dire maintenant, naturelle à l'oral.\n\n" + replyContext();
+    $("summaryOut").value = text;
+    copyText(text, $("suggest"), "Que répondre ?", $("summaryOut"));
+    setStatus("Copié : colle-le dans l'app Claude pour avoir la réponse.");
+    return;
+  }
+  $("suggest").disabled = true; setStatus("Je cherche la meilleure réponse…");
+  try{
+    const raw = await callClaude(SONNET, REPLY_SYSTEM, replyContext(), 200);
+    let r; try{ r = JSON.parse(raw.match(/\{[\s\S]*\}/)[0]); }catch(_){ r = {reponse: raw.trim().slice(0,160), pourquoi:""}; }
+    diag.reponsesSuggerees++;
+    $("replyBox").hidden = false;
+    $("replyText").textContent = r.reponse || "";
+    $("replyWhy").textContent = r.pourquoi ? "Pourquoi : " + r.pourquoi : "";
+    setStatus(running ? "J'écoute." : "");
+    if(r.reponse) await speak(r.reponse);
+  }catch(e){ setStatus(e.message, true); }
+  finally{ $("suggest").disabled = false; }
+});
+
+/* ---------- résumé de la journée, à coller dans Claude ---------- */
+function buildSummary(){
+  const total = listenMs + (startedAt ? Date.now() - startedAt : 0);
+  const counts = {};
+  turns.forEach(t => { const k = t.r.emotion || "?"; counts[k] = (counts[k] || 0) + 1; });
+  const rep = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `${k} : ${v}`).join(", ") || "aucune";
+  const lines = turns.map(t => {
+    const bits = [t.voice, t.pauses ? t.pauses + " hésitation(s)" : "", t.blankBefore ? "blanc de " + t.blankBefore.toFixed(0) + " s avant" : ""].filter(Boolean).join(" · ");
+    return `[${t.time}] « ${t.text} » → ${t.r.emotion} (confiance ${t.r.confiance}, ${t.who}) | conseil : ${t.r.conseil}${bits ? " | " + bits : ""}`;
+  }).join("\n");
+  return `Voici ce que ma Boussole sociale a capté aujourd'hui. Les émotions ont été devinées par des règles simples (mots-clés + mesures de voix), donc souvent approximatives. La transcription peut contenir des erreurs et mélanger ma voix avec celle des autres.
+
+Aide-moi à débriefer :
+1. Les moments où les gens ont sans doute ressenti quelque chose que j'ai pu rater.
+2. Les lectures automatiques qui te semblent fausses, et pourquoi.
+3. Deux ou trois choses concrètes à faire différemment la prochaine fois.
+
+Situation : ${$("ctx").value.trim() || "non précisée"}
+Durée d'écoute : ${Math.round(total/60000)} min · phrases : ${turns.length} · blancs signalés : ${diag.blancs}
+Répartition des lectures : ${rep}
+
+Transcription :
+${lines || "(vide)"}`;
+}
+$("summaryBtn").addEventListener("click", () => {
+  if(!turns.length){ setStatus("Rien à résumer pour l'instant.", true); return; }
+  const text = buildSummary();
+  $("summaryOut").value = text;
+  copyText(text, $("summaryBtn"), "Copier le résumé pour Claude", $("summaryOut"));
+  setStatus("Résumé copié : colle-le dans l'app Claude.");
+});
+
+/* ---------- reconnaissance vocale du navigateur ---------- */
+function startRec(){
+  if(!running || muted || !rec) return;
+  try{ rec.start(); }catch(_){ /* déjà démarrée */ }
+}
+function setupRec(){
+  if(!Rec){ setStatus("Ce navigateur ne propose pas la reconnaissance vocale. Ouvre la page dans Safari (iPhone) ou Chrome (Android).", true); return; }
+  rec = new Rec();
+  rec.lang = "fr-FR"; rec.continuous = true; rec.interimResults = true;
+  rec.onstart = () => { if(diag.reconnaissance.startsWith("pas")) diag.reconnaissance = "démarrée, pas encore de texte"; };
+  rec.onresult = e => {
+    diag.reconnaissance = "ok, reçoit du texte";
+    let interim = "";
+    for(let i=e.resultIndex; i<e.results.length; i++){
+      const r = e.results[i];
+      if(r.isFinal) handleFinal(r[0].transcript); else interim += r[0].transcript;
+    }
+    $("interim").textContent = interim;
+  };
+  rec.onerror = e => {
+    if(e.error === "not-allowed" || e.error === "service-not-allowed"){ setStatus("Micro ou reconnaissance vocale refusés. Autorise-les dans les réglages du navigateur.", true); stop(); }
+    else if(e.error !== "no-speech" && e.error !== "aborted") logErr("reconnaissance : " + e.error);
+  };
+  rec.onend = () => { $("interim").textContent = ""; if(running && !muted) setTimeout(startRec, 250); };
+}
+
+/* ---------- démarrer / arrêter ---------- */
+async function start(){
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:false, autoGainControl:false}});
+  }catch(e){ diag.micro = "refusé : " + e.message; setStatus("Accès au micro refusé ou impossible : " + e.message, true); return; }
+  const track = stream.getAudioTracks()[0];
+  diag.micro = "ok : " + (track && track.label ? track.label : "micro sans nom");
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  await ctx.resume();
+  const src = ctx.createMediaStreamSource(stream);
+  analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
+  src.connect(analyser);
+  noiseFloor = null; calib = []; frames = []; silentTicks = 0; pausesInUtt = 0; blankBefore = 0; heardSomething = false;
+  running = true; startedAt = Date.now();
+  $("toggle").textContent = "Arrêter"; $("toggle").classList.add("on");
+  setStatus("Calibration : reste silencieux une seconde…");
+  timer = setInterval(tick, TICK * 1000);
+  setupRec(); startRec();
+  try{ wakeLock = await navigator.wakeLock?.request("screen"); }catch(_){}
+}
+function stop(){
+  running = false;
+  if(startedAt){ listenMs += Date.now() - startedAt; startedAt = null; }
+  clearInterval(timer); timer = null;
+  try{ rec && rec.abort(); }catch(_){}
+  stream && stream.getTracks().forEach(t => t.stop());
+  ctx && ctx.close(); ctx = null; analyser = null;
+  try{ wakeLock && wakeLock.release(); }catch(_){}
+  $("toggle").textContent = "Écouter"; $("toggle").classList.remove("on");
+  ["mLevel","mPitch","mVoice","mSilence"].forEach(id => $(id).textContent = "–"); $("mBar").style.width = "0";
+  setStatus("Arrêté. Pense à copier le résumé avant de fermer la page.");
+}
+$("toggle").addEventListener("click", () => { if(running) stop(); else { unlockSpeech(); start(); } });
+document.addEventListener("visibilitychange", async () => {
+  if(document.visibilityState === "visible" && running){ try{ wakeLock = await navigator.wakeLock?.request("screen"); }catch(_){} }
+});
+window.addEventListener("beforeunload", e => { if(turns.length){ e.preventDefault(); e.returnValue = ""; } });
+</script>
+</body>
+</html>
